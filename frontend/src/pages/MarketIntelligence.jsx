@@ -1,0 +1,70 @@
+import { useEffect, useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { api } from '../api/client.js';
+import MarketTable from '../components/MarketTable.jsx';
+
+const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
+
+export default function MarketIntelligence() {
+  const [crop, setCrop] = useState('Tomato');
+  const [markets, setMarkets] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    api.getMarkets({ crop }).then((res) => {
+      setMarkets(res.markets);
+      setMessage(res.message || '');
+    });
+    api.getMarketTrends({ crop }).then((res) => {
+      const grouped = {};
+      res.history.forEach((h) => {
+        const d = new Date(h.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+        grouped[d] = grouped[d] || { date: d };
+        grouped[d][h.market] = h.modalPrice;
+      });
+      setHistory(Object.values(grouped));
+    });
+  }, [crop]);
+
+  useEffect(() => {
+    window.__agrisphereContext = { ...(window.__agrisphereContext || {}), marketComparison: markets };
+  }, [markets]);
+
+  const marketNames = [...new Set(history.flatMap((h) => Object.keys(h).filter((k) => k !== 'date')))];
+  const colors = ['#1e8450', '#274bd1', '#ea580c', '#8bb0ff'];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-extrabold text-slate-900">Market Intelligence</h1>
+        <select value={crop} onChange={(e) => setCrop(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2 text-sm">
+          {CROPS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {message && <p className="text-sm text-warn-700 bg-warn-50 rounded-lg px-3 py-2">{message}</p>}
+
+      <div className="card">
+        <h2 className="font-bold text-slate-800 mb-3">Market Comparison — {crop}</h2>
+        <p className="text-xs text-slate-400 mb-3">Ranked by net realization, not raw price — this is the market AgriSphere recommends.</p>
+        <MarketTable markets={markets} />
+      </div>
+
+      <div className="card">
+        <h2 className="font-bold text-slate-800 mb-3">Price Trend (last 60 days, synthetic demo data)</h2>
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={history}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={6} />
+            <YAxis tick={{ fontSize: 11 }} unit="₹" />
+            <Tooltip />
+            {marketNames.map((name, i) => (
+              <Line key={name} type="monotone" dataKey={name} stroke={colors[i % colors.length]} strokeWidth={2} dot={false} />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
