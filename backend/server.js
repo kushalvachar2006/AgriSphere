@@ -17,6 +17,10 @@ import transactionRoutes from './src/routes/transactions.js';
 import disputeRoutes from './src/routes/disputes.js';
 import aiRoutes from './src/routes/ai.js';
 import farmerRoutes from './src/routes/farmers.js';
+import arrivalRoutes from './src/routes/arrivals.js';               // Feature 1
+import demandForecastRoutes from './src/routes/demandForecast.js';  // Feature 2
+import offerRoutes from './src/routes/offers.js';                   // Feature 3
+import channelRoutes from './src/routes/channels.js';               // Feature 5
 
 const app = express();
 
@@ -37,6 +41,13 @@ app.use('/api/lots', lotRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/arrivals', arrivalRoutes);               // Feature 1: Arrival Volume Intelligence
+app.use('/api/demand-forecast', demandForecastRoutes);  // Feature 2: Buyer Demand Forecasting
+app.use('/api/offers', offerRoutes);                    // Feature 3: Digital Offer & Negotiation System
+app.use('/api/channels', channelRoutes);                // Feature 5: Multi-Channel Market Comparison
+// Feature 4 (Institutional Buyer Integration) extends the existing
+// /api/buyers route above with buyerType/channel query filters — see
+// controllers/buyerController.js.
 
 // 404 fallback
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));

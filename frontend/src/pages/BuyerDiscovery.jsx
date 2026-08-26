@@ -1,28 +1,51 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, Loader2, TrendingUp } from 'lucide-react';
 import { api } from '../api/client.js';
 import BuyerCard from '../components/BuyerCard.jsx';
 import QualityGradeModal from '../components/QualityGradeModal.jsx';
+import DemandForecastPanel from '../components/DemandForecastPanel.jsx';
 
 const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
+// Feature 4: institutional buyer types the farmer can filter by, alongside plain traders
+const BUYER_TYPES = ['All Types', 'Trader/Aggregator', 'Processor', 'Retail Chain', 'Exporter', 'Government Agency'];
 
 export default function BuyerDiscovery() {
+  const navigate = useNavigate();
   const [crop, setCrop] = useState('Tomato');
+  const [buyerType, setBuyerType] = useState('All Types');
   const [buyers, setBuyers] = useState([]);
   const [matches, setMatches] = useState(null);
   const [aiExplanation, setAiExplanation] = useState(null);
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
 
+  // Feature 2: Buyer Demand Forecasting
+  const [forecast, setForecast] = useState(null);
+  const [forecastAI, setForecastAI] = useState(null);
+  const [forecastMessage, setForecastMessage] = useState('');
+
   useEffect(() => {
-    api.getBuyers({ crop }).then((res) => setBuyers(res.buyers));
+    const params = buyerType !== 'All Types' ? { crop, buyerType } : { crop };
+    api.getBuyers(params).then((res) => setBuyers(res.buyers));
     setMatches(null);
     setAiExplanation(null);
+  }, [crop, buyerType]);
+
+  useEffect(() => {
+    api.getDemandForecast({ crop }).then((res) => {
+      setForecast(res.forecast);
+      setForecastAI(res.aiExplanation);
+      setForecastMessage(res.message || '');
+    });
   }, [crop]);
 
   useEffect(() => {
-    window.__agrisphereContext = { ...(window.__agrisphereContext || {}), buyerMatches: matches, aiExplanation };
-  }, [matches, aiExplanation]);
+    window.__agrisphereContext = {
+      ...(window.__agrisphereContext || {}),
+      buyerMatches: matches, aiExplanation, demandForecast: forecast,
+    };
+  }, [matches, aiExplanation, forecast]);
 
   const runMatch = async () => {
     setLoadingMatch(true);
@@ -35,15 +58,32 @@ export default function BuyerDiscovery() {
     }
   };
 
+  // Feature 3: kick off a digital offer thread against a buyer's listed
+  // price, then jump to the Offers tab to negotiate it.
+  const createOffer = async (buyer) => {
+    await api.createOffer({
+      farmerName: 'Ramesh Kumar',
+      buyerName: buyer.name,
+      crop: buyer.cropRequired,
+      grade: buyer.gradeRequired,
+      quantityTonnes: Math.min(10, buyer.quantityRequiredTonnes || 10),
+      pricePerKg: buyer.offerPricePerKg,
+    });
+    navigate('/offers');
+  };
+
   const displayList = matches ? matches.map((m) => ({ ...m.buyer, matchPercent: m.matchPercent })) : buyers;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-extrabold text-slate-900">Buyer Discovery & Matching</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select value={crop} onChange={(e) => setCrop(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2 text-sm">
             {CROPS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={buyerType} onChange={(e) => setBuyerType(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2 text-sm">
+            {BUYER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <button onClick={runMatch} disabled={loadingMatch} className="btn-primary">
             {loadingMatch ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
@@ -65,11 +105,16 @@ export default function BuyerDiscovery() {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayList.map((b) => (
-          <BuyerCard key={b._id || b.name} buyer={b} matchPercent={b.matchPercent} onViewMatch={() => {}} />
-        ))}
-        {!displayList.length && <p className="text-slate-500 text-sm">No buyers currently seeking {crop}.</p>}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4 content-start">
+          {displayList.map((b) => (
+            <BuyerCard key={b._id || b.name} buyer={b} matchPercent={b.matchPercent} onViewMatch={() => {}} onCreateOffer={createOffer} />
+          ))}
+          {!displayList.length && <p className="text-slate-500 text-sm">No buyers currently seeking {crop} in this category.</p>}
+        </div>
+        <div>
+          <DemandForecastPanel forecast={forecast} aiExplanation={forecastAI} message={forecastMessage} />
+        </div>
       </div>
 
       <QualityGradeModal open={qualityOpen} onClose={() => setQualityOpen(false)} cropHint={crop} />

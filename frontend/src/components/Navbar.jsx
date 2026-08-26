@@ -1,11 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { Sprout, LayoutDashboard, LineChart, Users, Boxes, Truck, MessagesSquare } from 'lucide-react';
+import {
+  Sprout, LayoutDashboard, LineChart, Users, Boxes, Truck, MessagesSquare,
+  Layers, Handshake,
+} from 'lucide-react';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/market', label: 'Market Intelligence', icon: LineChart },
   { to: '/buyers', label: 'Buyers', icon: Users },
+  { to: '/channels', label: 'Multi-Channel', icon: Layers },     // Feature 5
   { to: '/lot', label: 'FPO Smart Lot', icon: Boxes },
+  { to: '/offers', label: 'Offers', icon: Handshake },            // Feature 3
   { to: '/transaction', label: 'Transactions', icon: Truck },
   { to: '/assistant', label: 'Assistant', icon: MessagesSquare },
 ];

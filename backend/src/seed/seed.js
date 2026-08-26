@@ -8,7 +8,13 @@ import Buyer from '../models/Buyer.js';
 import Storage from '../models/Storage.js';
 import Logistics from '../models/Logistics.js';
 import PriceHistory from '../models/PriceHistory.js';
-import { demoFarmer, markets, buyers, storageFacilities, logisticsOptions, generatePriceHistory } from './seedData.js';
+import ArrivalVolume from '../models/ArrivalVolume.js';           // Feature 1
+import ProcurementHistory from '../models/ProcurementHistory.js'; // Feature 2
+import Offer from '../models/Offer.js';                            // Feature 3
+import {
+  demoFarmer, markets, buyers, storageFacilities, logisticsOptions,
+  generatePriceHistory, generateArrivalVolumeHistory, generateProcurementHistory,
+} from './seedData.js';
 
 async function run() {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/agrisphere';
@@ -22,6 +28,9 @@ async function run() {
     Storage.deleteMany({}),
     Logistics.deleteMany({}),
     PriceHistory.deleteMany({}),
+    ArrivalVolume.deleteMany({}),
+    ProcurementHistory.deleteMany({}),
+    Offer.deleteMany({}),
   ]);
   console.log('Cleared existing demo collections.');
 
@@ -31,16 +40,25 @@ async function run() {
   await Storage.insertMany(storageFacilities);
   await Logistics.insertMany(logisticsOptions);
   await PriceHistory.insertMany(generatePriceHistory());
+  await ArrivalVolume.insertMany(generateArrivalVolumeHistory().map((r) => ({ ...r, source: 'DEMO_SEED' })));
+  await ProcurementHistory.insertMany(generateProcurementHistory());
+  // Offers start empty — they're created live during the demo via the
+  // Digital Offer & Negotiation System (Feature 3), not seeded.
+
+  const institutionalCount = buyers.filter((b) => b.buyerType !== 'Trader/Aggregator').length;
 
   console.log('Seed complete:');
   console.log(`  Farmer: Ramesh Kumar (demo)`);
-  console.log(`  Markets: ${markets.length}`);
-  console.log(`  Buyers: ${buyers.length} (all clearly marked as demo/fictional)`);
+  console.log(`  Markets: ${markets.length} (APMC + eNAM channels)`);
+  console.log(`  Buyers: ${buyers.length} total, incl. ${institutionalCount} institutional buyers (Processor/Retail Chain/Exporter/Government Agency)`);
   console.log(`  Storage facilities: ${storageFacilities.length}`);
   console.log(`  Logistics routes: ${logisticsOptions.length}`);
   console.log(`  Price history points: synthetic, ~60 days per crop/market`);
-  console.log('NOTE: All buyer names and most price data are synthetic demo data');
-  console.log('for this SIH 2026 hackathon prototype, NOT official AGMARKNET data.');
+  console.log(`  Arrival volume points: synthetic, ~60 days per crop/market`);
+  console.log(`  Procurement history points: synthetic, 12 months per buyer/crop`);
+  console.log('NOTE: All buyer names and most price/arrival/procurement data are');
+  console.log('synthetic demo data for this SIH 2026 hackathon prototype, NOT official');
+  console.log('AGMARKNET/eNAM data.');
 
   await mongoose.disconnect();
   process.exit(0);

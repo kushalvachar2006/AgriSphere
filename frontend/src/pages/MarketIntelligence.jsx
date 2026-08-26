@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Layers } from 'lucide-react';
 import { api } from '../api/client.js';
 import MarketTable from '../components/MarketTable.jsx';
+import ArrivalVolumeChart from '../components/ArrivalVolumeChart.jsx';
 
 const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
 
@@ -10,6 +12,11 @@ export default function MarketIntelligence() {
   const [markets, setMarkets] = useState([]);
   const [history, setHistory] = useState([]);
   const [message, setMessage] = useState('');
+
+  // Feature 1: Arrival Volume Intelligence
+  const [arrivalSeries, setArrivalSeries] = useState([]);
+  const [arrivalStats, setArrivalStats] = useState(null);
+  const [arrivalInsight, setArrivalInsight] = useState(null);
 
   useEffect(() => {
     api.getMarkets({ crop }).then((res) => {
@@ -25,11 +32,20 @@ export default function MarketIntelligence() {
       });
       setHistory(Object.values(grouped));
     });
+    api.getArrivals({ crop }).then((res) => {
+      setArrivalSeries(res.series || []);
+      setArrivalStats(res.stats || null);
+      setArrivalInsight(res.aiInsight || null);
+    });
   }, [crop]);
 
   useEffect(() => {
-    window.__agrisphereContext = { ...(window.__agrisphereContext || {}), marketComparison: markets };
-  }, [markets]);
+    window.__agrisphereContext = {
+      ...(window.__agrisphereContext || {}),
+      marketComparison: markets,
+      arrivalVolumeStats: arrivalStats,
+    };
+  }, [markets, arrivalStats]);
 
   const marketNames = [...new Set(history.flatMap((h) => Object.keys(h).filter((k) => k !== 'date')))];
   const colors = ['#1e8450', '#274bd1', '#ea580c', '#8bb0ff'];
@@ -64,6 +80,12 @@ export default function MarketIntelligence() {
             ))}
           </LineChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="card">
+        <h2 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Layers size={18} className="text-intel-600" /> Arrival Volume Intelligence — {crop}</h2>
+        <p className="text-xs text-slate-400 mb-3">Daily mandi arrival volumes and how they relate to the price trend above.</p>
+        <ArrivalVolumeChart series={arrivalSeries} stats={arrivalStats} aiInsight={arrivalInsight} />
       </div>
     </div>
   );

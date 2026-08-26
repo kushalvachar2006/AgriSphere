@@ -12,6 +12,9 @@ import { buildSaleRecommendationPrompt } from '../ai/prompts/saleRecommendation.
 import { buildBuyerMatchExplanationPrompt } from '../ai/prompts/buyerMatchExplanation.js';
 import { buildQualityGradingPrompt } from '../ai/prompts/qualityGrading.js';
 import { buildFarmerAssistantPrompt } from '../ai/prompts/farmerAssistant.js';
+import { buildArrivalVolumeInsightPrompt } from '../ai/prompts/arrivalVolumeInsight.js';
+import { buildDemandForecastExplanationPrompt } from '../ai/prompts/demandForecastExplanation.js';
+import { buildOfferNegotiationSummaryPrompt } from '../ai/prompts/offerNegotiationSummary.js';
 
 const MODEL = 'gemini-2.5-flash';
 
@@ -121,6 +124,54 @@ export async function answerFarmerQuestion(question, context) {
     console.error('Gemini farmer assistant failed, using fallback:', err.message);
     return {
       answer: "I don't have enough verified data to answer that right now — the AI service is temporarily unavailable.",
+      aiAvailable: false,
+    };
+  }
+}
+
+// Feature 1: Arrival Volume Intelligence — explain already-computed stats
+export async function getArrivalVolumeInsight(data) {
+  try {
+    const prompt = buildArrivalVolumeInsightPrompt(data);
+    const result = await callGeminiJSON(prompt);
+    return { ...result, aiAvailable: true };
+  } catch (err) {
+    console.error('Gemini arrival volume insight failed, using fallback:', err.message);
+    return {
+      insight: `Arrivals ${data.stats?.arrivalChangePct >= 0 ? 'increased' : 'decreased'} by ${Math.abs(data.stats?.arrivalChangePct ?? 0)}% recently. ${data.stats?.priceTrendLabel || ''}`,
+      sellTimingHint: 'AI explanation service temporarily unavailable — refer to the raw arrival and price figures above.',
+      aiAvailable: false,
+    };
+  }
+}
+
+// Feature 2: Buyer Demand Forecasting — explain already-computed forecast
+export async function getDemandForecastExplanation(data) {
+  try {
+    const prompt = buildDemandForecastExplanationPrompt(data);
+    const result = await callGeminiJSON(prompt);
+    return { ...result, aiAvailable: true };
+  } catch (err) {
+    console.error('Gemini demand forecast explanation failed, using fallback:', err.message);
+    return {
+      explanation: 'AI explanation service temporarily unavailable — the forecast figure above was computed from seasonal averages and recent trend only.',
+      farmerImplication: 'Compare the forecast quantity to your own lot size to gauge likely demand.',
+      aiAvailable: false,
+    };
+  }
+}
+
+// Feature 3: Digital Offer & Negotiation System — summarize a thread
+export async function explainOfferNegotiation(data) {
+  try {
+    const prompt = buildOfferNegotiationSummaryPrompt(data);
+    const result = await callGeminiJSON(prompt);
+    return { ...result, aiAvailable: true };
+  } catch (err) {
+    console.error('Gemini offer negotiation summary failed, using fallback:', err.message);
+    return {
+      summary: 'AI summary service temporarily unavailable — please review the negotiation history entries directly.',
+      currentGap: 'See currentPricePerKg vs initialPricePerKg in the offer for the current gap.',
       aiAvailable: false,
     };
   }

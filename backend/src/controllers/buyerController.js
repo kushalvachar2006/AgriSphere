@@ -5,12 +5,18 @@ import { calculateTrustScore } from '../services/trustScoreService.js';
 import { matchBuyers } from '../services/matchingService.js';
 import { explainBuyerMatch } from '../services/geminiService.js';
 
-// GET /api/buyers?crop=Tomato
+// GET /api/buyers?crop=Tomato&buyerType=Processor&channel=Exporter
+// buyerType/channel filters power Feature 4 (Institutional Buyer Integration) —
+// the frontend can ask for just processors, retail chains, exporters, or
+// government procurement agencies.
 export const listBuyers = asyncHandler(async (req, res) => {
-  const { crop } = req.query;
-  const query = crop ? { cropRequired: crop } : {};
-  const buyers = await Buyer.find(query).lean();
+  const { crop, buyerType, channel } = req.query;
+  const query = {};
+  if (crop) query.cropRequired = crop;
+  if (buyerType) query.buyerType = buyerType;
+  if (channel) query.channel = channel;
 
+  const buyers = await Buyer.find(query).lean();
   const withTrust = buyers.map((b) => ({ ...b, trust: calculateTrustScore(b) }));
   res.json({ success: true, buyers: withTrust });
 });
