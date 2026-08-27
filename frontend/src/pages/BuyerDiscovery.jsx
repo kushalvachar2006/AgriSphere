@@ -10,7 +10,7 @@ const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
 // Feature 4: institutional buyer types the farmer can filter by, alongside plain traders
 const BUYER_TYPES = ['All Types', 'Trader/Aggregator', 'Processor', 'Retail Chain', 'Exporter', 'Government Agency'];
 
-export default function BuyerDiscovery() {
+export default function BuyerDiscovery({ farmerName = 'Ramesh Kumar', offersPath = '/demo/offers' }) {
   const navigate = useNavigate();
   const [crop, setCrop] = useState('Tomato');
   const [buyerType, setBuyerType] = useState('All Types');
@@ -62,14 +62,14 @@ export default function BuyerDiscovery() {
   // price, then jump to the Offers tab to negotiate it.
   const createOffer = async (buyer) => {
     await api.createOffer({
-      farmerName: 'Ramesh Kumar',
+      farmerName,
       buyerName: buyer.name,
       crop: buyer.cropRequired,
       grade: buyer.gradeRequired,
       quantityTonnes: Math.min(10, buyer.quantityRequiredTonnes || 10),
       pricePerKg: buyer.offerPricePerKg,
     });
-    navigate('/offers');
+    navigate(offersPath);
   };
 
   const displayList = matches ? matches.map((m) => ({ ...m.buyer, matchPercent: m.matchPercent })) : buyers;

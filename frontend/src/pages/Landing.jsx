@@ -23,7 +23,7 @@ export default function Landing() {
           it does not replace eNAM or AGMARKNET. It turns fragmented market, buyer, logistics and
           storage data into one clear, explainable recommendation for farmers and FPOs.
         </p>
-        <button onClick={() => navigate('/dashboard')} className="btn-primary mt-8 text-base px-6 py-3">
+        <button onClick={() => navigate('/demo/dashboard')} className="btn-primary mt-8 text-base px-6 py-3">
           Enter Demo Dashboard <ArrowRight size={18} />
         </button>
         <p className="text-xs text-slate-400 mt-3">Preconfigured demo farmer: Ramesh Kumar · Kolar, Karnataka · 10T Tomato</p>

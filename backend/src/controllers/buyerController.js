@@ -10,15 +10,40 @@ import { explainBuyerMatch } from '../services/geminiService.js';
 // the frontend can ask for just processors, retail chains, exporters, or
 // government procurement agencies.
 export const listBuyers = asyncHandler(async (req, res) => {
-  const { crop, buyerType, channel } = req.query;
+  const { crop, buyerType, channel, name } = req.query;
   const query = {};
   if (crop) query.cropRequired = crop;
   if (buyerType) query.buyerType = buyerType;
   if (channel) query.channel = channel;
+  if (name) query.name = name;
 
   const buyers = await Buyer.find(query).lean();
   const withTrust = buyers.map((b) => ({ ...b, trust: calculateTrustScore(b) }));
   res.json({ success: true, buyers: withTrust });
+});
+
+// POST /api/buyers  — lets a buyer post a new procurement requirement.
+// Reuses the existing Buyer model/schema exactly as-is (Feature 4); this
+// is the same document shape already used for seeded demo buyers, just
+// created live from the Buyer dashboard instead of via the seed script.
+export const createBuyerRequirement = asyncHandler(async (req, res) => {
+  const {
+    name, buyerType, channel, cropRequired, gradeRequired, quantityRequiredTonnes,
+    offerPricePerKg, location, distanceKm, requiredByDate, requirements,
+  } = req.body;
+
+  if (!name || !cropRequired || !quantityRequiredTonnes || !offerPricePerKg) {
+    return res.status(400).json({ success: false, message: 'name, cropRequired, quantityRequiredTonnes and offerPricePerKg are required' });
+  }
+
+  const buyer = await Buyer.create({
+    name, buyerType, channel, cropRequired, gradeRequired, quantityRequiredTonnes,
+    offerPricePerKg, location, distanceKm, requiredByDate, requirements,
+    verified: true, paymentReliabilityPct: 80, completedTransactions: 0, disputedTransactionsPct: 0,
+    isDemoData: true,
+  });
+
+  res.status(201).json({ success: true, buyer });
 });
 
 // POST /api/buyers/match  { crop, quantityTonnes, grade }

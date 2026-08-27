@@ -1,25 +1,28 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   Sprout, LayoutDashboard, LineChart, Users, Boxes, Truck, MessagesSquare,
-  Layers, Handshake,
+  Layers, Handshake, ArrowLeftRight,
 } from 'lucide-react';
 
+// Nav for the preserved all-in-one "Existing Full Dashboard / Demo View"
+// (see App.jsx: everything here is now mounted under /demo). Untouched
+// otherwise — this is the original nav, just re-pathed.
 const links = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/market', label: 'Market Intelligence', icon: LineChart },
-  { to: '/buyers', label: 'Buyers', icon: Users },
-  { to: '/channels', label: 'Multi-Channel', icon: Layers },     // Feature 5
-  { to: '/lot', label: 'FPO Smart Lot', icon: Boxes },
-  { to: '/offers', label: 'Offers', icon: Handshake },            // Feature 3
-  { to: '/transaction', label: 'Transactions', icon: Truck },
-  { to: '/assistant', label: 'Assistant', icon: MessagesSquare },
+  { to: '/demo/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/demo/market', label: 'Market Intelligence', icon: LineChart },
+  { to: '/demo/buyers', label: 'Buyers', icon: Users },
+  { to: '/demo/channels', label: 'Multi-Channel', icon: Layers },     // Feature 5
+  { to: '/demo/lot', label: 'FPO Smart Lot', icon: Boxes },
+  { to: '/demo/offers', label: 'Offers', icon: Handshake },            // Feature 3
+  { to: '/demo/transaction', label: 'Transactions', icon: Truck },
+  { to: '/demo/assistant', label: 'Assistant', icon: MessagesSquare },
 ];
 
 export default function Navbar() {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        <NavLink to="/dashboard" className="flex items-center gap-2 shrink-0">
+        <NavLink to="/demo/dashboard" className="flex items-center gap-2 shrink-0">
           <div className="w-9 h-9 rounded-xl bg-agri-600 flex items-center justify-center">
             <Sprout size={20} className="text-white" />
           </div>
@@ -41,6 +44,10 @@ export default function Navbar() {
             </NavLink>
           ))}
         </nav>
+
+        <Link to="/" className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 shrink-0">
+          <ArrowLeftRight size={13} /> Switch Role
+        </Link>
       </div>
     </header>
   );

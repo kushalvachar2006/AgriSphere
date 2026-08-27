@@ -13,7 +13,7 @@ const STATUS_STYLE = {
   WITHDRAWN: 'bg-slate-100 text-slate-400',
 };
 
-export default function OfferCard({ offer, onCounter, onAccept, onReject }) {
+export default function OfferCard({ offer, counterAs = 'farmer', onCounter, onAccept, onReject }) {
   const [showCounter, setShowCounter] = useState(false);
   const [price, setPrice] = useState(offer.currentPricePerKg);
   const [qty, setQty] = useState(offer.currentQuantityTonnes);
@@ -22,7 +22,7 @@ export default function OfferCard({ offer, onCounter, onAccept, onReject }) {
   const isOpen = offer.status === 'PENDING' || offer.status === 'COUNTERED';
 
   const submitCounter = () => {
-    onCounter(offer._id, { by: 'farmer', pricePerKg: Number(price), quantityTonnes: Number(qty), note });
+    onCounter(offer._id, { by: counterAs, pricePerKg: Number(price), quantityTonnes: Number(qty), note });
     setShowCounter(false);
     setNote('');
   };

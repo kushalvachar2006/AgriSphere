@@ -2,17 +2,39 @@ import { useState } from 'react';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
 import { api } from '../api/client.js';
 
-const SAMPLE_QUESTIONS = [
-  'Why should I sell to ABC Foods?',
-  'Should I wait three days?',
-  'Which market gives me the best net realization?',
-  'Why is Bengaluru better than Kolar?',
-];
+// Role-specific sample questions (spec section 20) — purely a UX prompt
+// for the same underlying assistant; the assistant itself is unchanged
+// and still answers only from window.__agrisphereContext.
+const SAMPLE_QUESTIONS = {
+  farmer: [
+    'Why should I sell to ABC Foods?',
+    'Should I wait three days?',
+    'Which market gives me the best net realization?',
+    'Why is Bengaluru better than Kolar?',
+  ],
+  fpo: [
+    'Which buyer is best for this Smart Lot?',
+    'Why is this buyer match ranked highest?',
+    'What is our total pooled quantity?',
+  ],
+  buyer: [
+    'Why is this FPO a good match?',
+    'What is the demand forecast for Tomato?',
+    'Which lot best fits my requirement?',
+  ],
+};
 
-export default function AIAssistant() {
+const TITLES = {
+  farmer: 'Farmer AI Assistant',
+  fpo: 'FPO AI Assistant',
+  buyer: 'Buyer AI Assistant',
+};
+
+export default function AIAssistant({ role = 'farmer' }) {
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const sampleQuestions = SAMPLE_QUESTIONS[role] || SAMPLE_QUESTIONS.farmer;
 
   const ask = async (q) => {
     const text = q ?? question;
@@ -35,7 +57,7 @@ export default function AIAssistant() {
         <div className="w-14 h-14 rounded-2xl bg-agri-600 flex items-center justify-center mx-auto mb-3">
           <Sparkles size={26} className="text-white" />
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Farmer AI Assistant</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900">{TITLES[role] || TITLES.farmer}</h1>
         <p className="text-slate-500 text-sm mt-1">
           Answers strictly from AgriSphere's own data — market prices, buyer offers, logistics,
           storage and recommendations you've already viewed in this session.
@@ -43,7 +65,7 @@ export default function AIAssistant() {
       </div>
 
       <div className="flex flex-wrap gap-2 justify-center">
-        {SAMPLE_QUESTIONS.map((q) => (
+        {sampleQuestions.map((q) => (
           <button key={q} onClick={() => ask(q)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full px-3 py-1.5">
             {q}
           </button>

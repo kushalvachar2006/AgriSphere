@@ -21,4 +21,7 @@ body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
   .pill-nav {
     @apply px-3 py-2 rounded-xl text-sm font-medium transition-colors;
   }
+  .input {
+    @apply block w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-1 outline-none focus:border-agri-400;
+  }
 }

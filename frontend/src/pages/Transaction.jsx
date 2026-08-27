@@ -4,19 +4,30 @@ import { api } from '../api/client.js';
 
 const STATUSES = ['OFFER_CREATED', 'OFFER_ACCEPTED', 'PICKUP_SCHEDULED', 'IN_TRANSIT', 'DELIVERED', 'PAYMENT_RECEIVED'];
 
-export default function TransactionTracking() {
+const DEFAULT_DEMO_TX = {
+  farmerName: 'Ramesh Kumar', buyerName: 'ABC Foods (Demo)', crop: 'Tomato',
+  quantityTonnes: 10, agreedPricePerKg: 24, netRealizationPerKg: 21.6,
+};
+
+// Reused as-is across /demo, Farmer, FPO, and Buyer roles. Each role
+// passes filterFarmerName/filterBuyerName so it only sees transactions
+// relevant to it (spec section 19) — the underlying Transaction data and
+// lifecycle are shared, not duplicated.
+export default function TransactionTracking({ filterFarmerName, filterBuyerName, demoTransactionDefaults = DEFAULT_DEMO_TX }) {
   const [transactions, setTransactions] = useState([]);
   const [disputeFor, setDisputeFor] = useState(null);
   const [disputeForm, setDisputeForm] = useState({ issueType: '', description: '' });
 
-  const load = () => api.listTransactions().then((res) => setTransactions(res.transactions));
-  useEffect(() => { load(); }, []);
+  const load = () => api.listTransactions().then((res) => {
+    let list = res.transactions;
+    if (filterFarmerName) list = list.filter((t) => t.farmerName === filterFarmerName);
+    if (filterBuyerName) list = list.filter((t) => t.buyerName === filterBuyerName);
+    setTransactions(list);
+  });
+  useEffect(() => { load(); }, [filterFarmerName, filterBuyerName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const createDemoTransaction = async () => {
-    await api.createTransaction({
-      farmerName: 'Ramesh Kumar', buyerName: 'ABC Foods (Demo)', crop: 'Tomato',
-      quantityTonnes: 10, agreedPricePerKg: 24, netRealizationPerKg: 21.6,
-    });
+    await api.createTransaction(demoTransactionDefaults);
     load();
   };
 

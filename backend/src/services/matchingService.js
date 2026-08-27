@@ -80,3 +80,40 @@ function dateUrgencyScore(requiredByDate) {
   if (days <= 10) return 70;
   return 40;
 }
+
+// ---------------------------------------------------------------------
+// Buyer-side matching (added for the Buyer role dashboard): a buyer has
+// posted a requirement (crop, quantity, grade) and we need to rank
+// existing FPO Smart Lots against it. This reuses the exact same
+// deterministic philosophy and helper functions as matchBuyers() above,
+// just scored from the opposite direction — it is NOT a second ranking
+// algorithm, it's the same crop/quantity/grade compatibility logic
+// applied to lots instead of buyers. Gemini is never involved here.
+// ---------------------------------------------------------------------
+const LOT_WEIGHTS = {
+  cropCompatibility: 0.4,
+  quantityCompatibility: 0.35,
+  qualityCompatibility: 0.25,
+};
+
+/**
+ * @param {Object} buyerRequirement - { crop, quantityRequiredTonnes, gradeRequired }
+ * @param {Array} lots - Lot docs, each with { crop, totalQuantityTonnes, grade }
+ */
+export function matchLotsToBuyerRequirement(buyerRequirement, lots) {
+  const scored = lots.map((lot) => {
+    const cropCompatibility = lot.crop?.toLowerCase() === buyerRequirement.crop?.toLowerCase() ? 100 : 0;
+    const quantityCompatibility = scoreRatio(lot.totalQuantityTonnes, buyerRequirement.quantityRequiredTonnes);
+    const qualityCompatibility = gradeScore(lot.grade, buyerRequirement.gradeRequired);
+
+    const matchPercent = Math.round(
+      cropCompatibility * LOT_WEIGHTS.cropCompatibility +
+      quantityCompatibility * LOT_WEIGHTS.quantityCompatibility +
+      qualityCompatibility * LOT_WEIGHTS.qualityCompatibility,
+    );
+
+    return { lot, matchPercent };
+  });
+
+  return scored.sort((a, b) => b.matchPercent - a.matchPercent);
+}
