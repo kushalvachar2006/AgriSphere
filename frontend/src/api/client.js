@@ -17,6 +17,7 @@ async function request(path, options = {}) {
 
 export const api = {
   getDemoFarmer: () => request('/farmers/demo'),
+  getFarmer: (id) => request(`/farmers/${id}`),
   listFarmers: (params = {}) => request(`/farmers?${new URLSearchParams(params)}`),
   matchFarmersForBuyer: (body) => request('/farmers/match', { method: 'POST', body: JSON.stringify(body) }),
   getMarkets: (params = {}) => request(`/markets?${new URLSearchParams(params)}`),

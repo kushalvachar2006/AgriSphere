@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutDashboard, LineChart, Users, Boxes, Truck, MessagesSquare, Layers, Handshake, ClipboardList, Search, TrendingUp } from 'lucide-react';
+import { Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
+import { LayoutDashboard, LineChart, Users, Boxes, Truck, MessagesSquare, Layers, Handshake, ClipboardList, Search, TrendingUp, ArrowLeft } from 'lucide-react';
+import { FarmerProvider, useFarmer, getRememberedFarmerId } from './context/FarmerContext.jsx';
 
 // --- Shared chrome ---
 import Layout from './components/Layout.jsx';           // existing all-in-one layout — unchanged
@@ -20,6 +21,7 @@ import OfferNegotiation from './pages/OfferNegotiation.jsx';
 import MultiChannelComparison from './pages/MultiChannelComparison.jsx';
 
 // --- New role-specific dashboards ---
+import FarmerSelect from './pages/FarmerSelect.jsx';      // "which farmer's dashboard?" picker
 import FarmerDashboard from './pages/FarmerDashboard.jsx';
 import FPODashboard, { FPO_NAME } from './pages/FPODashboard.jsx';
 import BuyerDashboard, { BUYER_NAME } from './pages/BuyerDashboard.jsx';
@@ -36,15 +38,6 @@ const demoNav = [
   { to: '/demo/offers', label: 'Offers', icon: Handshake },
   { to: '/demo/transaction', label: 'Transactions', icon: Truck },
   { to: '/demo/assistant', label: 'Assistant', icon: MessagesSquare },
-];
-
-const farmerNav = [
-  { to: '/farmer', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/farmer/market', label: 'Market Intelligence', icon: LineChart },
-  { to: '/farmer/buyers', label: 'Buyers', icon: Users },
-  { to: '/farmer/transactions', label: 'Transactions', icon: Truck },
-  { to: '/farmer/offers', label: 'Offers', icon: Handshake },
-  { to: '/farmer/assistant', label: 'AI Assistant', icon: MessagesSquare },
 ];
 
 const fpoNav = [
@@ -64,6 +57,94 @@ const buyerNav = [
   { to: '/buyer/transactions', label: 'Transactions', icon: Truck },
   { to: '/buyer/assistant', label: 'AI Assistant', icon: MessagesSquare },
 ];
+
+// /farmer (no id) — same idea as landing on a sports app with no match
+// selected: if we already know which farmer this browser was looking
+// at, go straight back to their dashboard; otherwise send them to pick
+// one, like choosing a match before its scorecard.
+function FarmerEntry() {
+  const remembered = getRememberedFarmerId();
+  return <Navigate to={remembered ? `/farmer/${remembered}` : '/farmer/select'} replace />;
+}
+
+// Simple chrome around the picker so it doesn't feel orphaned.
+function FarmerSelectShell() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 sm:px-6">
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1.5">
+          <ArrowLeft size={15} /> Back
+        </Link>
+      </header>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <FarmerSelect />
+      </main>
+    </div>
+  );
+}
+
+// /farmer/:farmerId/* — everything the Farmer role shows is scoped to
+// this one farmerId via FarmerProvider (context), and the nav links are
+// built with that id baked in so switching tabs stays on the same
+// farmer. This is the "one dashboard template, many farmers" piece.
+function FarmerRoleShell() {
+  const { farmerId } = useParams();
+  const base = `/farmer/${farmerId}`;
+  const navItems = [
+    { to: base, label: 'Dashboard', icon: LayoutDashboard },
+    { to: `${base}/market`, label: 'Market Intelligence', icon: LineChart },
+    { to: `${base}/buyers`, label: 'Buyers', icon: Users },
+    { to: `${base}/transactions`, label: 'Transactions', icon: Truck },
+    { to: `${base}/offers`, label: 'Offers', icon: Handshake },
+    { to: `${base}/assistant`, label: 'AI Assistant', icon: MessagesSquare },
+  ];
+  return (
+    <FarmerProvider farmerId={farmerId}>
+      <RoleLayout role="farmer" basePath={base} navItems={navItems} />
+    </FarmerProvider>
+  );
+}
+
+// Downstream pages (BuyerDiscovery/OfferNegotiation/TransactionTracking)
+// take a farmerName prop rather than an id — they're shared with FPO/
+// Buyer roles too — so these small wrappers pull the CURRENT farmer's
+// name out of context instead of a literal "Ramesh Kumar" string.
+// Market Intelligence isn't shared with other roles the way Buyers/
+// Offers/Transactions are, but it still shouldn't always open on
+// Tomato — seed it with the current farmer's actual harvest crop.
+// Guarded on `farmer` being loaded first: initialCrop is only read once
+// (useState initializer), so mounting it before the farmer loads would
+// permanently seed it as undefined.
+function FarmerScopedMarketIntelligence() {
+  const { farmerId, farmer, loading } = useFarmer();
+  if (loading || !farmer) return <p className="text-slate-500">Loading market data…</p>;
+  return <MarketIntelligence key={farmerId} initialCrop={farmer.currentCrop?.crop} />;
+}
+function FarmerScopedBuyerDiscovery() {
+  const { farmerId, farmer, loading } = useFarmer();
+  if (loading || !farmer) return <p className="text-slate-500">Loading buyers…</p>;
+  const crop = farmer.currentCrop || {};
+  return (
+    <BuyerDiscovery
+      key={farmerId}
+      farmerName={farmer.name}
+      offersPath={`/farmer/${farmerId}/offers`}
+      initialCrop={crop.crop}
+      initialQuantityTonnes={crop.quantityTonnes}
+      initialGrade={crop.grade}
+    />
+  );
+}
+function FarmerScopedOfferNegotiation() {
+  const { farmerId, farmer, loading } = useFarmer();
+  if (loading || !farmer) return <p className="text-slate-500">Loading offers…</p>;
+  return <OfferNegotiation key={farmerId} filterKey="farmerName" filterValue={farmer.name} counterAs="farmer" />;
+}
+function FarmerScopedTransactions() {
+  const { farmerId, farmer, loading } = useFarmer();
+  if (loading || !farmer) return <p className="text-slate-500">Loading transactions…</p>;
+  return <TransactionTracking key={farmerId} filterFarmerName={farmer.name} />;
+}
 
 export default function App() {
   return (
@@ -85,13 +166,18 @@ export default function App() {
         <Route path="assistant" element={<AIAssistant role="farmer" />} />
       </Route>
 
-      {/* Farmer role: decision-oriented — "what should I do?" */}
-      <Route path="/farmer" element={<RoleLayout role="farmer" basePath="/farmer" navItems={farmerNav} />}>
+      {/* Farmer role: decision-oriented — "what should I do?"
+          /farmer redirects to either the last-viewed farmer or the
+          picker; /farmer/:farmerId is that one farmer's full dashboard —
+          same shape for every farmer, scorecard-style. */}
+      <Route path="/farmer" element={<FarmerEntry />} />
+      <Route path="/farmer/select" element={<FarmerSelectShell />} />
+      <Route path="/farmer/:farmerId" element={<FarmerRoleShell />}>
         <Route index element={<FarmerDashboard />} />
-        <Route path="market" element={<MarketIntelligence />} />
-        <Route path="buyers" element={<BuyerDiscovery farmerName="Ramesh Kumar" offersPath="/farmer/offers" />} />
-        <Route path="offers" element={<OfferNegotiation filterKey="farmerName" filterValue="Ramesh Kumar" counterAs="farmer" />} />
-        <Route path="transactions" element={<TransactionTracking filterFarmerName="Ramesh Kumar" />} />
+        <Route path="market" element={<FarmerScopedMarketIntelligence />} />
+        <Route path="buyers" element={<FarmerScopedBuyerDiscovery />} />
+        <Route path="offers" element={<FarmerScopedOfferNegotiation />} />
+        <Route path="transactions" element={<FarmerScopedTransactions />} />
         <Route path="assistant" element={<AIAssistant role="farmer" />} />
       </Route>
 

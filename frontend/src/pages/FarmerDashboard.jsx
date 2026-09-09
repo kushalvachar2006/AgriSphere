@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, MapPin, Loader2, ShieldCheck, Truck, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { api } from '../api/client.js';
+import { useFarmer } from '../context/FarmerContext.jsx';
 
 const PRESSURE_BADGE = {
   up: { icon: TrendingUp, text: 'Higher expected arrivals', tone: 'bg-warn-50 text-warn-700' },
@@ -20,14 +21,17 @@ const PRESSURE_BADGE = {
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
-  const [farmer, setFarmer] = useState(null);
+  // farmer here comes from the URL's :farmerId (see App.jsx / FarmerProvider) —
+  // this is what makes the dashboard "one template, many farmers", the
+  // same way a scorecard component is keyed by matchId instead of
+  // hardcoding a single match.
+  const { farmer, loading: farmerLoading, error: farmerError } = useFarmer();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { recommended, alternatives, why }
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    api.getDemoFarmer().then((res) => setFarmer(res.farmer)).catch(() => {});
-  }, []);
+  // Reset any previous farmer's recommendation when switching farmers.
+  useEffect(() => { setResult(null); setError(''); }, [farmer?._id]);
 
   useEffect(() => {
     window.__agrisphereContext = { ...(window.__agrisphereContext || {}), farmer, farmerRecommendation: result };
@@ -76,7 +80,8 @@ export default function FarmerDashboard() {
     }
   };
 
-  if (!farmer) return <p className="text-slate-500">Loading your dashboard…</p>;
+  if (farmerError) return <p className="text-sm text-red-500">{farmerError}</p>;
+  if (farmerLoading || !farmer) return <p className="text-slate-500">Loading your dashboard…</p>;
 
   const { crop, quantityTonnes, grade } = farmer.currentCrop;
 

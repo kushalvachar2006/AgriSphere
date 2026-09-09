@@ -10,9 +10,19 @@ const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
 // Feature 4: institutional buyer types the farmer can filter by, alongside plain traders
 const BUYER_TYPES = ['All Types', 'Trader/Aggregator', 'Processor', 'Retail Chain', 'Exporter', 'Government Agency'];
 
-export default function BuyerDiscovery({ farmerName = 'Ramesh Kumar', offersPath = '/demo/offers' }) {
+// initialCrop/initialQuantityTonnes/initialGrade let a caller seed this
+// with a specific harvest — used by the Farmer role so Buyer Discovery
+// (and "Run Smart Matching") reflects THAT farmer's actual crop/quantity/
+// grade instead of the previous hardcoded Tomato/10T/Grade A.
+export default function BuyerDiscovery({
+  farmerName = 'Ramesh Kumar',
+  offersPath = '/demo/offers',
+  initialCrop = 'Tomato',
+  initialQuantityTonnes = 10,
+  initialGrade = 'A',
+}) {
   const navigate = useNavigate();
-  const [crop, setCrop] = useState('Tomato');
+  const [crop, setCrop] = useState(initialCrop);
   const [buyerType, setBuyerType] = useState('All Types');
   const [buyers, setBuyers] = useState([]);
   const [matches, setMatches] = useState(null);
@@ -50,7 +60,7 @@ export default function BuyerDiscovery({ farmerName = 'Ramesh Kumar', offersPath
   const runMatch = async () => {
     setLoadingMatch(true);
     try {
-      const res = await api.matchBuyers({ crop, quantityTonnes: 10, grade: 'A' });
+      const res = await api.matchBuyers({ crop, quantityTonnes: initialQuantityTonnes, grade: initialGrade });
       setMatches(res.matches);
       setAiExplanation(res.aiExplanation);
     } finally {
@@ -66,7 +76,7 @@ export default function BuyerDiscovery({ farmerName = 'Ramesh Kumar', offersPath
       buyerName: buyer.name,
       crop: buyer.cropRequired,
       grade: buyer.gradeRequired,
-      quantityTonnes: Math.min(10, buyer.quantityRequiredTonnes || 10),
+      quantityTonnes: Math.min(initialQuantityTonnes, buyer.quantityRequiredTonnes || initialQuantityTonnes),
       pricePerKg: buyer.offerPricePerKg,
     });
     navigate(offersPath);

@@ -9,7 +9,7 @@ import { Sprout, Wheat, Users2, Factory, ArrowRight, LayoutGrid } from 'lucide-r
 const ROLES = [
   {
     key: 'farmer',
-    to: '/farmer',
+    to: '/farmer/select',
     icon: Wheat,
     title: 'Farmer',
     description: 'Find the best selling opportunity for your produce.',

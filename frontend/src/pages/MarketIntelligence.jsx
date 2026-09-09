@@ -7,8 +7,12 @@ import ArrivalVolumeChart from '../components/ArrivalVolumeChart.jsx';
 
 const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
 
-export default function MarketIntelligence() {
-  const [crop, setCrop] = useState('Tomato');
+// initialCrop lets a caller seed this with a specific crop — used by the
+// Farmer role to open Market Intelligence already showing THAT farmer's
+// harvest crop instead of always defaulting to Tomato. The dropdown
+// still lets them browse other crops from there.
+export default function MarketIntelligence({ initialCrop = 'Tomato' }) {
+  const [crop, setCrop] = useState(initialCrop);
   const [markets, setMarkets] = useState([]);
   const [history, setHistory] = useState([]);
   const [message, setMessage] = useState('');
