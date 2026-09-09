@@ -117,3 +117,32 @@ export function matchLotsToBuyerRequirement(buyerRequirement, lots) {
 
   return scored.sort((a, b) => b.matchPercent - a.matchPercent);
 }
+
+/**
+ * Same buyer-side matching approach as matchLotsToBuyerRequirement, applied
+ * to individual farmers' produce instead of FPO Smart Lots — so a buyer's
+ * "Find Produce" search can surface standalone farmer listings alongside
+ * pooled lots. Still the same weights, same helper functions, no second
+ * algorithm.
+ *
+ * @param {Object} buyerRequirement - { crop, quantityRequiredTonnes, gradeRequired }
+ * @param {Array} farmers - Farmer docs, each with an embedded currentCrop: { crop, quantityTonnes, grade }
+ */
+export function matchFarmersToBuyerRequirement(buyerRequirement, farmers) {
+  const scored = farmers.map((farmer) => {
+    const crop = farmer.currentCrop || {};
+    const cropCompatibility = crop.crop?.toLowerCase() === buyerRequirement.crop?.toLowerCase() ? 100 : 0;
+    const quantityCompatibility = scoreRatio(crop.quantityTonnes, buyerRequirement.quantityRequiredTonnes);
+    const qualityCompatibility = gradeScore(crop.grade, buyerRequirement.gradeRequired);
+
+    const matchPercent = Math.round(
+      cropCompatibility * LOT_WEIGHTS.cropCompatibility +
+      quantityCompatibility * LOT_WEIGHTS.quantityCompatibility +
+      qualityCompatibility * LOT_WEIGHTS.qualityCompatibility,
+    );
+
+    return { farmer, matchPercent };
+  });
+
+  return scored.sort((a, b) => b.matchPercent - a.matchPercent);
+}

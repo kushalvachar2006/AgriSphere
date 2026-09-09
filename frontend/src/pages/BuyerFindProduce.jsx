@@ -1,12 +1,22 @@
-// pages/BuyerFindProduce.jsx — buyer discovers existing FPO Smart Lots.
-// Uses the new (but architecturally consistent) POST /api/lots/match,
-// which reuses the same deterministic crop/quantity/grade compatibility
-// approach as the farmer-side buyer matching — see
-// backend/src/services/matchingService.js: matchLotsToBuyerRequirement.
+// pages/BuyerFindProduce.jsx — buyer discovers BOTH FPO Smart Lots and
+// standalone individual farmer produce, ranked together in one list.
+//
+// Uses two deterministic, architecturally-identical endpoints —
+// POST /api/lots/match and POST /api/farmers/match — which both reuse
+// the same crop/quantity/grade compatibility scoring (see
+// backend/src/services/matchingService.js: matchLotsToBuyerRequirement
+// and matchFarmersToBuyerRequirement). No new ranking algorithm.
+//
+// Offer attribution matters here: an offer against a Smart Lot is
+// attributed to the FPO's name, and an offer against an individual
+// farmer's produce is attributed to that farmer's actual name — so it
+// shows up in the correct party's Offers tab (FPO or Farmer), never the
+// Buyer's (the Buyer role has no Offers tab by design).
 import { useEffect, useState } from 'react';
-import { Search, Boxes } from 'lucide-react';
+import { Search, Boxes, User } from 'lucide-react';
 import { api } from '../api/client.js';
 import { BUYER_NAME } from './BuyerDashboard.jsx';
+import { FPO_NAME } from './FPODashboard.jsx';
 
 const CROPS = ['Tomato', 'Onion', 'Potato', 'Paddy'];
 
@@ -14,32 +24,55 @@ export default function BuyerFindProduce() {
   const [crop, setCrop] = useState('Tomato');
   const [quantityRequiredTonnes, setQuantityRequiredTonnes] = useState(10);
   const [gradeRequired, setGradeRequired] = useState('A');
-  const [matches, setMatches] = useState([]);
+  const [results, setResults] = useState([]);
   const [message, setMessage] = useState('');
 
   const search = async () => {
-    const res = await api.matchLotsForBuyer({ crop, quantityRequiredTonnes: Number(quantityRequiredTonnes), gradeRequired });
-    setMatches(res.matches || []);
-    setMessage(res.message || '');
+    const requirement = { crop, quantityRequiredTonnes: Number(quantityRequiredTonnes), gradeRequired };
+    const [lotRes, farmerRes] = await Promise.all([
+      api.matchLotsForBuyer(requirement),
+      api.matchFarmersForBuyer(requirement),
+    ]);
+
+    const lotResults = (lotRes.matches || []).map((m) => ({ kind: 'lot', matchPercent: m.matchPercent, data: m.lot }));
+    const farmerResults = (farmerRes.matches || []).map((m) => ({ kind: 'farmer', matchPercent: m.matchPercent, data: m.farmer }));
+
+    const merged = [...lotResults, ...farmerResults].sort((a, b) => b.matchPercent - a.matchPercent);
+    setResults(merged);
+    setMessage(!merged.length ? (lotRes.message || farmerRes.message || 'No produce matched your search.') : '');
   };
 
   useEffect(() => { search(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    window.__agrisphereContext = { ...(window.__agrisphereContext || {}), lotMatches: matches };
-  }, [matches]);
+    window.__agrisphereContext = { ...(window.__agrisphereContext || {}), produceMatches: results };
+  }, [results]);
 
-  const makeOffer = async (lot) => {
-    await api.createOffer({
-      lotId: lot._id,
-      farmerName: `FPO Lot (${lot._id.slice(-6)})`,
-      buyerName: BUYER_NAME,
-      crop: lot.crop,
-      grade: lot.grade,
-      quantityTonnes: Math.min(quantityRequiredTonnes, lot.totalQuantityTonnes),
-      pricePerKg: 22, // buyer's own opening offer for this negotiation
-    });
-    alert('Offer created — check the Offers tab to negotiate it.');
+  const makeOffer = async (item) => {
+    if (item.kind === 'lot') {
+      const lot = item.data;
+      await api.createOffer({
+        lotId: lot._id,
+        farmerName: FPO_NAME, // attributes the offer to the FPO that owns this Smart Lot
+        buyerName: BUYER_NAME,
+        crop: lot.crop,
+        grade: lot.grade,
+        quantityTonnes: Math.min(quantityRequiredTonnes, lot.totalQuantityTonnes),
+        pricePerKg: 22,
+      });
+      alert(`Offer sent to ${FPO_NAME} — they'll see it in their Offers tab.`);
+    } else {
+      const farmer = item.data;
+      await api.createOffer({
+        farmerName: farmer.name, // attributes the offer to the actual farmer
+        buyerName: BUYER_NAME,
+        crop: farmer.currentCrop.crop,
+        grade: farmer.currentCrop.grade,
+        quantityTonnes: Math.min(quantityRequiredTonnes, farmer.currentCrop.quantityTonnes),
+        pricePerKg: 22,
+      });
+      alert(`Offer sent to ${farmer.name} — they'll see it in their Offers tab.`);
+    }
   };
 
   return (
@@ -61,17 +94,33 @@ export default function BuyerFindProduce() {
       {message && <p className="text-sm text-slate-500">{message}</p>}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {matches.map(({ lot, matchPercent }) => (
-          <div key={lot._id} className="card space-y-2">
+        {results.map((item) => (
+          <div key={`${item.kind}-${item.data._id}`} className="card space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><Boxes size={16} className="text-agri-600" /> {lot.crop} Smart Lot</h3>
-              <span className="badge bg-intel-50 text-intel-700 font-bold">{matchPercent}% match</span>
+              {item.kind === 'lot' ? (
+                <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><Boxes size={16} className="text-agri-600" /> {item.data.crop} Smart Lot</h3>
+              ) : (
+                <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><User size={16} className="text-intel-600" /> {item.data.name}</h3>
+              )}
+              <span className="badge bg-intel-50 text-intel-700 font-bold">{item.matchPercent}% match</span>
             </div>
-            <p className="text-sm text-slate-500">{lot.totalQuantityTonnes}T · Grade {lot.grade} · {lot.contributions.length} contributing farmers</p>
-            <button onClick={() => makeOffer(lot)} className="btn-secondary text-sm w-full justify-center mt-2">Make Offer</button>
+
+            {item.kind === 'lot' ? (
+              <p className="text-sm text-slate-500">
+                {item.data.totalQuantityTonnes}T · Grade {item.data.grade} · {item.data.contributions.length} contributing farmers
+                <span className="badge bg-slate-100 text-slate-500 text-[10px] ml-2">FPO Lot</span>
+              </p>
+            ) : (
+              <p className="text-sm text-slate-500">
+                {item.data.currentCrop.quantityTonnes}T · Grade {item.data.currentCrop.grade} · {item.data.location?.district}
+                <span className="badge bg-slate-100 text-slate-500 text-[10px] ml-2">Individual Farmer</span>
+              </p>
+            )}
+
+            <button onClick={() => makeOffer(item)} className="btn-secondary text-sm w-full justify-center mt-2">Make Offer</button>
           </div>
         ))}
-        {!matches.length && !message && <p className="text-slate-500 text-sm">No Smart Lots matched your search.</p>}
+        {!results.length && !message && <p className="text-slate-500 text-sm">No produce matched your search.</p>}
       </div>
     </div>
   );

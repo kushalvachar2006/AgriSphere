@@ -61,7 +61,6 @@ const buyerNav = [
   { to: '/buyer/requirements', label: 'Requirements', icon: ClipboardList },
   { to: '/buyer/find-produce', label: 'Find Produce', icon: Search },
   { to: '/buyer/forecast', label: 'Demand Forecast', icon: TrendingUp },
-  { to: '/buyer/offers', label: 'Offers', icon: Handshake },
   { to: '/buyer/transactions', label: 'Transactions', icon: Truck },
   { to: '/buyer/assistant', label: 'AI Assistant', icon: MessagesSquare },
 ];
@@ -106,13 +105,15 @@ export default function App() {
         <Route path="assistant" element={<AIAssistant role="fpo" />} />
       </Route>
 
-      {/* Buyer role: procurement-oriented — "how do I source the right produce?" */}
+      {/* Buyer role: procurement-oriented — "how do I source the right produce?"
+          Note: no Offers tab here by design — an offer a Buyer makes is
+          attributed to the FPO or Farmer identity it was made against, and
+          is negotiated from THEIR Offers tab, not the Buyer's. */}
       <Route path="/buyer" element={<RoleLayout role="buyer" basePath="/buyer" navItems={buyerNav} />}>
         <Route index element={<BuyerDashboard />} />
         <Route path="requirements" element={<BuyerRequirements />} />
         <Route path="find-produce" element={<BuyerFindProduce />} />
         <Route path="forecast" element={<BuyerForecast />} />
-        <Route path="offers" element={<OfferNegotiation filterKey="buyerName" filterValue={BUYER_NAME} counterAs="buyer" />} />
         <Route path="transactions" element={<TransactionTracking filterBuyerName={BUYER_NAME} demoTransactionDefaults={{ farmerName: 'Ramesh Kumar', buyerName: BUYER_NAME, crop: 'Tomato', quantityTonnes: 10, agreedPricePerKg: 24, netRealizationPerKg: 21.6 }} />} />
         <Route path="assistant" element={<AIAssistant role="buyer" />} />
       </Route>

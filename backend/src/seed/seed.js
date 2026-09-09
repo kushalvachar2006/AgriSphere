@@ -12,7 +12,7 @@ import ArrivalVolume from '../models/ArrivalVolume.js';           // Feature 1
 import ProcurementHistory from '../models/ProcurementHistory.js'; // Feature 2
 import Offer from '../models/Offer.js';                            // Feature 3
 import {
-  demoFarmer, markets, buyers, storageFacilities, logisticsOptions,
+  demoFarmer, additionalFarmers, markets, buyers, storageFacilities, logisticsOptions,
   generatePriceHistory, generateArrivalVolumeHistory, generateProcurementHistory,
 } from './seedData.js';
 
@@ -35,6 +35,7 @@ async function run() {
   console.log('Cleared existing demo collections.');
 
   await Farmer.create(demoFarmer);
+  await Farmer.insertMany(additionalFarmers);
   await Market.insertMany(markets.map((m) => ({ ...m, source: 'DEMO_SEED' })));
   await Buyer.insertMany(buyers.map((b) => ({ ...b, isDemoData: true })));
   await Storage.insertMany(storageFacilities);
@@ -48,7 +49,7 @@ async function run() {
   const institutionalCount = buyers.filter((b) => b.buyerType !== 'Trader/Aggregator').length;
 
   console.log('Seed complete:');
-  console.log(`  Farmer: Ramesh Kumar (demo)`);
+  console.log(`  Farmer: Ramesh Kumar (demo login) + ${additionalFarmers.length} additional standalone farmers (buyer-discoverable only)`);
   console.log(`  Markets: ${markets.length} (APMC + eNAM channels)`);
   console.log(`  Buyers: ${buyers.length} total, incl. ${institutionalCount} institutional buyers (Processor/Retail Chain/Exporter/Government Agency)`);
   console.log(`  Storage facilities: ${storageFacilities.length}`);

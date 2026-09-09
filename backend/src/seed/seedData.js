@@ -10,6 +10,34 @@ export const demoFarmer = {
   currentCrop: { crop: 'Tomato', quantityTonnes: 10, grade: 'A', storageAvailable: true },
 };
 
+// Additional standalone farmers (not the logged-in demo farmer) so the
+// Buyer role's "Find Produce" search has real individual-farmer produce
+// to discover, not just FPO Smart Lots. These farmers have no dashboard
+// of their own in this prototype — offers made against them are still
+// correctly attributed to their name in the Offer/Transaction records,
+// they simply aren't visible in any role's UI (there's only one Farmer
+// login: Ramesh Kumar).
+export const additionalFarmers = [
+  {
+    name: 'Lakshmi Devi',
+    location: { village: 'Srinivaspur', district: 'Kolar', state: 'Karnataka', lat: 13.32, lng: 78.21 },
+    phone: '+91-90000-00001',
+    currentCrop: { crop: 'Onion', quantityTonnes: 8, grade: 'A', storageAvailable: false },
+  },
+  {
+    name: 'Suresh Gowda',
+    location: { village: 'Malavalli', district: 'Mandya', state: 'Karnataka', lat: 12.38, lng: 77.07 },
+    phone: '+91-90000-00002',
+    currentCrop: { crop: 'Paddy', quantityTonnes: 15, grade: 'B', storageAvailable: true },
+  },
+  {
+    name: 'Manjunath H.',
+    location: { village: 'Chintamani', district: 'Chikkaballapur', state: 'Karnataka', lat: 13.4, lng: 78.06 },
+    phone: '+91-90000-00003',
+    currentCrop: { crop: 'Tomato', quantityTonnes: 6, grade: 'B', storageAvailable: false },
+  },
+];
+
 // `channel` distinguishes physical APMC mandis from eNAM electronic-trading
 // listings — Feature 5 (Multi-Channel Market Comparison) ranks both
 // alongside buyer channels in one comparison.
