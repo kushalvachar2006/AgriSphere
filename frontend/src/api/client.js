@@ -1,7 +1,7 @@
 // api/client.js — tiny fetch wrapper shared by all pages.
 // Centralizing this makes it easy to add error handling or a base URL
 // change in exactly one place.
-const BASE = '/api';
+const BASE = import.meta.env.VITE_API_URL||'/api';
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
