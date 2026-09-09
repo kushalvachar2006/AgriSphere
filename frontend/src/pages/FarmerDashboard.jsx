@@ -25,7 +25,7 @@ export default function FarmerDashboard() {
   // this is what makes the dashboard "one template, many farmers", the
   // same way a scorecard component is keyed by matchId instead of
   // hardcoding a single match.
-  const { farmer, loading: farmerLoading, error: farmerError } = useFarmer();
+  const { farmerId, farmer, loading: farmerLoading, error: farmerError } = useFarmer();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { recommended, alternatives, why }
   const [error, setError] = useState('');
@@ -80,6 +80,19 @@ export default function FarmerDashboard() {
     }
   };
 
+  // "View Details" used to just dump the farmer on the generic Buyers
+  // list/Market Intelligence tab with no indication of which option they'd
+  // clicked. For a buyer option, carry that buyer's name over as a
+  // ?buyer= query param so the Buyers tab can scroll to and highlight
+  // that exact buyer's card instead of just showing the full list.
+  const goToOptionDetails = (option) => {
+    if (option.kind === 'market') {
+      navigate(`/farmer/${farmerId}/market`);
+    } else {
+      navigate(`/farmer/${farmerId}/buyers?buyer=${encodeURIComponent(option.label)}`);
+    }
+  };
+
   if (farmerError) return <p className="text-sm text-red-500">{farmerError}</p>;
   if (farmerLoading || !farmer) return <p className="text-slate-500">Loading your dashboard…</p>;
 
@@ -110,7 +123,7 @@ export default function FarmerDashboard() {
 
       {result && (
         <>
-          <OptionCard option={result.recommended} highlight onDetails={() => navigate(result.recommended.kind === 'market' ? '/farmer/market' : '/farmer/buyers')} />
+          <OptionCard option={result.recommended} highlight onDetails={() => goToOptionDetails(result.recommended)} />
 
           {result.aiRecommendation && (
             <div className="card bg-intel-50/40 border-intel-100">
@@ -126,7 +139,7 @@ export default function FarmerDashboard() {
             <p className="text-sm font-semibold text-slate-600 mb-2">Other Options</p>
             <div className="grid sm:grid-cols-2 gap-3">
               {result.alternatives.map((opt) => (
-                <OptionCard key={opt.label} option={opt} compact onDetails={() => navigate(opt.kind === 'market' ? '/farmer/market' : '/farmer/buyers')} />
+                <OptionCard key={opt.label} option={opt} compact onDetails={() => goToOptionDetails(opt)} />
               ))}
             </div>
           </div>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sparkles, Loader2, TrendingUp } from 'lucide-react';
 import { api } from '../api/client.js';
 import BuyerCard from '../components/BuyerCard.jsx';
@@ -22,6 +22,13 @@ export default function BuyerDiscovery({
   initialGrade = 'A',
 }) {
   const navigate = useNavigate();
+  // "View Details" on the Farmer dashboard links here with ?buyer=<name>
+  // for the specific buyer the farmer clicked on — used below to scroll
+  // to and highlight that one buyer's card instead of leaving the farmer
+  // to hunt for it in the full list.
+  const [searchParams] = useSearchParams();
+  const highlightBuyerName = searchParams.get('buyer');
+  const highlightedCardRef = useRef(null);
   const [crop, setCrop] = useState(initialCrop);
   const [buyerType, setBuyerType] = useState('All Types');
   const [buyers, setBuyers] = useState([]);
@@ -84,6 +91,15 @@ export default function BuyerDiscovery({
 
   const displayList = matches ? matches.map((m) => ({ ...m.buyer, matchPercent: m.matchPercent })) : buyers;
 
+  // Once the targeted buyer's card is actually in the DOM, scroll it into
+  // view. Depends on displayList.length so it re-runs after the buyers
+  // for this crop finish loading (the ref isn't set on the first render).
+  useEffect(() => {
+    if (highlightBuyerName && highlightedCardRef.current) {
+      highlightedCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightBuyerName, displayList.length]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -117,9 +133,20 @@ export default function BuyerDiscovery({
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4 content-start">
-          {displayList.map((b) => (
-            <BuyerCard key={b._id || b.name} buyer={b} matchPercent={b.matchPercent} onViewMatch={() => {}} onCreateOffer={createOffer} />
-          ))}
+          {displayList.map((b) => {
+            const isHighlighted = !!highlightBuyerName && b.name === highlightBuyerName;
+            return (
+              <BuyerCard
+                key={b._id || b.name}
+                ref={isHighlighted ? highlightedCardRef : null}
+                buyer={b}
+                matchPercent={b.matchPercent}
+                highlighted={isHighlighted}
+                onViewMatch={() => {}}
+                onCreateOffer={createOffer}
+              />
+            );
+          })}
           {!displayList.length && <p className="text-slate-500 text-sm">No buyers currently seeking {crop} in this category.</p>}
         </div>
         <div>

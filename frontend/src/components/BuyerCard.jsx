@@ -2,7 +2,7 @@
 // Feature 4 (Institutional Buyer Integration): shows buyerType/channel as
 // a badge, and — for institutional buyers — an expandable requirements
 // panel (quality spec, delivery schedule, packaging, contract type).
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { ShieldCheck, MapPin, ArrowRight, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 
 const INSTITUTIONAL_TYPES = ['Processor', 'Retail Chain', 'Exporter', 'Government Agency'];
@@ -15,15 +15,22 @@ const TYPE_BADGE = {
   'Trader/Aggregator': 'bg-slate-100 text-slate-600',
 };
 
-export default function BuyerCard({ buyer, matchPercent, onViewMatch, onCreateOffer }) {
-  const [showRequirements, setShowRequirements] = useState(false);
+const BuyerCard = forwardRef(function BuyerCard({ buyer, matchPercent, onViewMatch, onCreateOffer, highlighted }, ref) {
+  // Starts pre-expanded when this is the specific buyer the farmer was
+  // sent here to view (arrived via "View Details" with a matching name),
+  // so its details are visible without an extra click.
+  const [showRequirements, setShowRequirements] = useState(!!highlighted);
   const trust = buyer.trust?.score ?? buyer.trustScore;
   const isInstitutional = INSTITUTIONAL_TYPES.includes(buyer.buyerType);
 
   return (
-    <div className="card flex flex-col gap-3">
+    <div
+      ref={ref}
+      className={`card flex flex-col gap-3 ${highlighted ? 'border-2 border-intel-400 ring-2 ring-intel-100' : ''}`}
+    >
       <div className="flex items-start justify-between">
         <div>
+          {highlighted && <p className="text-xs font-semibold text-intel-600 mb-1">Buyer you selected</p>}
           <h3 className="font-bold text-slate-800">{buyer.name}</h3>
           <p className="text-sm text-slate-500">{buyer.cropRequired} — Grade {buyer.gradeRequired}</p>
         </div>
@@ -79,4 +86,6 @@ export default function BuyerCard({ buyer, matchPercent, onViewMatch, onCreateOf
       <p className="text-[11px] text-slate-400">Demo buyer for prototype purposes — not a real company.</p>
     </div>
   );
-}
+});
+
+export default BuyerCard;
